@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>LUT Studio - Professional Mobile Lab</title>
+    
+    <!-- Third Party Assets -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10b981',
+                        secondary: '#14b8a6',
+                        dark: '#0f172a'
+                    },
+                    borderRadius: {
+                        '3xl': '24px',
+                        '4xl': '32px'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            margin: 0;
+            padding: 0;
+            height: 100dvh;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        /* Splash Screen */
+        #splash {
+            position: fixed;
+            inset: 0;
+            background: #ffffff;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #splash.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .accent-gradient {
+            background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+        }
+
+        /* Glassmorphism */
+        .glass-header {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding-top: var(--safe-top);
+        }
+
+        .bottom-sheet {
+            background: #ffffff;
+            border-top-left-radius: 32px;
+            border-top-right-radius: 32px;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.05);
+            padding-bottom: calc(var(--safe-bottom) + 16px);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* Scrollbar & Helpers */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .image-card {
+            transition: all 0.3s ease;
+            transform: scale(0.98);
+        }
+        .image-card.active {
+            transform: scale(1.05);
+            border-color: #10b981;
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Progress Animation */
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spinner { animation: rotate 1s linear infinite; }
+
+        /* Sliders */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #10b981;
+            cursor: pointer;
+            margin-top: -9px;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+            border: 3px solid #ffffff;
+        }
+
+        /* Logs Console */
+        #ota-log-console {
+            background: #0f172a;
+            border-radius: 20px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: #4ade80;
+            height: 160px;
+            overflow-y: auto;
+            border: 1px solid #1e293b;
+        }
+
+        /* Batch FAB Pulse */
+        @keyframes pulse-btn {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .pulse-batch { animation: pulse-btn 2s infinite; }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- Splash Screen -->
+    <div id="splash">
+        <div class="w-24 h-24 accent-gradient rounded-[32px] flex items-center justify-center shadow-2xl animate-pulse">
+            <i class="ph-fill ph-cube-transparent text-white text-5xl"></i>
+        </div>
+        <h1 class="mt-8 text-2xl font-black tracking-tighter text-slate-900 uppercase italic">LUT Studio</h1>
+        <div class="mt-4 flex items-center gap-2">
+            <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce"></div>
+            <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+            <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="glass-header h-[72px] px-6 flex items-center justify-between shrink-0 z-40">
+        <div class="flex items-center gap-3">
+            <div class="w-11 h-11 accent-gradient rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <i class="ph-fill ph-cube-transparent text-white text-2xl"></i>
+            </div>
+            <div class="flex flex-col">
+                <span class="text-lg font-black tracking-tight text-slate-900 italic leading-none">LUT Studio</span>
+                <span id="version-badge" class="text-[8px] font-bold text-slate-400 tracking-widest mt-1 uppercase">v4.0.0 • Pro Edition</span>
+            </div>
+        </div>
+        <button onclick="LAB.toggleSettings()" class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-600 active:scale-90 transition-transform">
+            <i class="ph-bold ph-sliders-horizontal text-xl"></i>
+        </button>
+    </header>
+
+    <!-- Main Viewport -->
+    <main class="flex-1 bg-slate-50 relative flex items-center justify-center overflow-hidden">
+        <!-- Labels -->
+        <div id="preview-labels" class="absolute top-6 inset-x-6 flex justify-between pointer-events-none z-30 opacity-0 transition-opacity duration-500">
+             <span class="text-[10px] uppercase font-black text-slate-900 bg-white/80 px-3 py-1.5 rounded-full border border-black/5 backdrop-blur-md">Original</span>
+             <span class="text-[10px] uppercase font-black text-white bg-emerald-600 px-3 py-1.5 rounded-full shadow-lg">Lut Applied</span>
+        </div>
+
+        <!-- Canvas Container -->
+        <div id="canvas-area" class="w-full h-full relative flex items-center justify-center p-4">
+             <canvas id="main-canvas" class="hidden max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-all duration-500"></canvas>
+             <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-center p-10">
+                  <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-300">
+                       <i class="ph-fill ph-image-square text-3xl"></i>
+                  </div>
+                  <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-loose">Laboratory Ready<br><span class="text-[8px] font-bold lowercase opacity-60">Add media to begin processing</span></p>
+             </div>
+        </div>
+
+        <!-- Hidden Image for Processor -->
+        <img id="source-img" class="hidden">
+    </main>
+
+    <!-- Bottom Sheet -->
+    <footer class="bottom-sheet shrink-0 z-40">
+        <div class="handle"></div>
+        <div class="px-6 space-y-4">
+            
+            <!-- Parameters -->
+            <div class="bg-slate-50 rounded-[20px] p-4 border border-black/5">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Intensity</span>
+                    <span id="intensity-text" class="text-lg font-black text-emerald-600 italic">100%</span>
+                </div>
+                <input type="range" id="intensity-range" min="0" max="200" value="100" class="block">
+                <div class="flex justify-between mt-3">
+                    <button onclick="LAB.setIntensity(25)" class="text-[8px] font-bold text-slate-400 font-mono bg-white px-2.5 py-1 rounded-full border border-black/5">25%</button>
+                    <button onclick="LAB.setIntensity(50)" class="text-[8px] font-bold text-slate-400 font-mono bg-white px-2.5 py-1 rounded-full border border-black/5">50%</button>
+                    <button onclick="LAB.setIntensity(100)" class="text-[8px] font-bold text-emerald-600 font-mono bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">100%</button>
+                    <button onclick="LAB.setIntensity(150)" class="text-[8px] font-bold text-slate-400 font-mono bg-white px-2.5 py-1 rounded-full border border-black/5">TURBO</button>
+                </div>
+            </div>
+
+            <!-- Action Grid -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="relative group">
+                    <input type="file" id="lut-upload" accept=".cube" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                    <div class="bg-white border-2 border-dashed border-emerald-100 rounded-[20px] p-4 flex flex-col items-center gap-2 group-active:scale-95 transition-all bg-emerald-50/10">
+                        <i class="ph-fill ph-swatches text-2xl text-emerald-500"></i>
+                        <span class="text-[9px] font-black uppercase text-emerald-600">Load LUT</span>
+                        <span id="lut-name" class="text-[8px] font-bold text-emerald-400 truncate w-full text-center">No Selected</span>
+                    </div>
+                </div>
+                <div class="relative group">
+                    <input type="file" id="image-upload" accept="image/*" multiple class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                    <div class="bg-white border border-slate-100 rounded-[20px] p-4 flex flex-col items-center gap-2 group-active:scale-95 transition-all">
+                        <i class="ph-fill ph-images text-2xl text-slate-400"></i>
+                        <span class="text-[9px] font-black uppercase text-slate-600">Add Media</span>
+                        <span id="media-count" class="text-[8px] font-bold text-slate-400">0 Items Selected</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Film Strip Gallery -->
+            <div id="gallery-container" class="space-y-2 opacity-40 grayscale pointer-events-none transition-all duration-500">
+                <div class="flex justify-between items-center px-1">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Processing Queue</span>
+                    <button onclick="LAB.clearQueue()" class="text-[8px] font-bold text-red-500 uppercase">Clear All</button>
+                </div>
+                <div id="film-strip" class="flex gap-3 overflow-x-auto no-scrollbar pb-2 min-h-[70px]">
+                     <div class="w-full text-center py-6 text-[10px] font-bold text-slate-300 italic">No media in queue...</div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Batch FAB -->
+    <button id="batch-fab" onclick="LAB.startBatchProcess()" class="fixed bottom-[calc(var(--safe-bottom)+200px)] right-6 w-16 h-16 accent-gradient rounded-full shadow-2xl flex items-center justify-center text-white scale-0 transition-transform duration-500 z-50">
+        <i class="ph-bold ph-rocket-launch text-2xl"></i>
+    </button>
+
+    <!-- History Drawer -->
+    <div id="history-drawer" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden flex flex-col justify-end">
+        <div class="bg-white rounded-t-4xl p-8 max-h-[85vh] overflow-y-auto transform translate-y-full transition-transform duration-500">
+            <div class="handle mb-6"></div>
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-black italic tracking-tighter">LAB HISTORY</h3>
+                <button onclick="LAB.toggleHistory()" class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+                    <i class="ph-bold ph-x text-2xl"></i>
+                </button>
+            </div>
+            <div id="export-list" class="grid grid-cols-2 gap-4">
+                 <div class="col-span-2 text-center py-20 text-slate-300 font-bold text-[11px] uppercase italic">History is empty</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Overlay -->
+    <div id="settings-overlay" class="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm hidden flex flex-col justify-end">
+        <div class="bg-white rounded-t-4xl p-8 pb-14 max-h-[90vh] overflow-y-auto transform translate-y-full transition-transform duration-500">
+            <div class="handle mb-6"></div>
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-black italic tracking-tighter text-gradient">DHAN LABS</h3>
+                <button onclick="LAB.toggleSettings()" class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+                    <i class="ph-bold ph-x text-2xl"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-8">
+                <!-- OTA ALERT -->
+                <div id="ota-alert" class="hidden p-5 bg-emerald-600 rounded-3xl flex items-center justify-between shadow-xl shadow-emerald-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-white">
+                            <i class="ph-bold ph-sparkle text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-black text-white uppercase tracking-wider">Update Ready!</p>
+                            <p id="ota-version-label" class="text-[9px] font-bold text-white/70 italic mt-0.5">v2.5.0 is available</p>
+                        </div>
+                    </div>
+                    <button id="ota-btn" onclick="LAB.installUpdate()" class="px-5 py-2.5 bg-white text-emerald-600 font-black text-[10px] rounded-xl active:scale-95 shadow-lg">INSTALL</button>
+                </div>
+
+                <div class="space-y-4">
+                    <label class="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">OTA Debug Console</label>
+                    <div id="ota-log-console" class="custom-scrollbar">
+                        <div>[SYSTEM] Laboratory engine initializing...</div>
+                        <div>[SYSTEM] Looking for updates @ GitHub...</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="LAB.checkUpdate(true)" class="p-4 bg-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-600 active:bg-slate-200">Force Check</button>
+                        <button onclick="LAB.clearOTA()" class="p-4 bg-red-50 rounded-2xl text-[10px] font-black uppercase text-red-500 active:bg-red-100">Reset System</button>
+                    </div>
+                </div>
+
+                <!-- NEW: RESOLUTION SETTING -->
+                <div class="space-y-3 pt-6 border-t border-slate-100">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Process Resolution</span>
+                    <div class="flex gap-2">
+                        <button id="res-720" onclick="LAB.setResolution(720)" class="flex-1 p-3 bg-slate-100 text-slate-400 rounded-xl text-[10px] font-black uppercase transition-all">720p</button>
+                        <button id="res-1080" onclick="LAB.setResolution(1080)" class="flex-1 p-3 bg-slate-100 text-slate-400 rounded-xl text-[10px] font-black uppercase transition-all">1080p</button>
+                        <button id="res-full" onclick="LAB.setResolution(0)" class="flex-1 p-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase transition-all">Full</button>
+                    </div>
+                    <p class="text-[8px] font-bold text-slate-300 italic uppercase">Higher resolution requires more battery & memory.</p>
+                </div>
+
+                <div class="space-y-3 pt-6 border-t border-slate-100">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Process Export Format</span>
+                    <div class="flex gap-2">
+                        <button class="flex-1 p-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase">JPEG (High)</button>
+                        <button class="flex-1 p-3 bg-slate-100 text-slate-400 rounded-xl text-[10px] font-black uppercase">PNG (HQ)</button>
+                    </div>
+                </div>
+            </div>
+            <p class="text-center mt-12 text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em]">Next Engine v4.0.0</p>
+        </div>
+    </div>
+
+    <!-- Batch Progress Overlay -->
+    <div id="batch-overlay" class="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-xl hidden flex flex-col items-center justify-center p-10">
+        <div class="w-48 h-48 relative mb-10">
+             <svg class="w-full h-full" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"/>
+                  <circle id="batch-ring" cx="50" cy="50" r="45" fill="none" stroke="#6366f1" stroke-width="6" stroke-dasharray="283" stroke-dashoffset="283" transform="rotate(-90 50 50)" class="transition-all duration-300"/>
+             </svg>
+             <div class="absolute inset-0 flex flex-col items-center justify-center">
+                  <span id="batch-percent" class="text-4xl font-black text-white italic">0%</span>
+                  <span id="batch-counter" class="text-[10px] text-white/50 font-black uppercase mt-1">0 / 0</span>
+             </div>
+        </div>
+        <p id="batch-status" class="text-emerald-400 text-xs font-black uppercase tracking-[0.4em] animate-pulse">Running Batch Lab...</p>
+        <p id="batch-filename" class="text-white/40 text-[9px] font-bold mt-4 uppercase italic">Preparing Assets...</p>
+    </div>
+
+    <script>
+        /**
+         * LUT Studio Master Application
+         * Integrated 3D LUT WebGL2 Processor
+         * Pro Lab Edition
+         */
+
+        const LAB = {
+            state: {
+                lut: null,
+                intensity: parseFloat(localStorage.getItem('lab_intensity')) || 1.0,
+                queue: [], // Array of objects {id, file, blobUrl, name}
+                activeId: null,
+                history: [], // Will be loaded from IndexedDB
+                version: '4.0.0',
+                resolution: parseInt(localStorage.getItem('lab_resolution')) || 0 // 0 = Full
+            },
+
+            async init() {
+                try {
+                    // Check for native permissions on init
+                    await this.requestNativePermissions();
+
+                    // Persistence: Load version from storage (for OTA)
+                    const storedVersion = localStorage.getItem('app_version');
+                    if (storedVersion) {
+                        this.state.version = storedVersion;
+                    }
+
+                    await this.db.init();
+                    this.setupCore();
+                    this.setupOTA();
+                    this.updateResolutionUI();
+                    this.setupSplash();
+                    await this.loadHistory();
+                    this.log("Laboratory engine online.");
+                } catch (e) {
+                    this.log("ERR: Init failed: " + e.message);
+                }
+            },
+
+            // --- DATABASE ENGINE (Anti-Forgetful) ---
+            db: {
+                instance: null,
+                init() {
+                    return new Promise((resolve, reject) => {
+                        const request = indexedDB.open("LUTStudioDB", 1);
+                        request.onupgradeneeded = (e) => {
+                            const db = e.target.result;
+                            if (!db.objectStoreNames.contains("history")) {
+                                db.createObjectStore("history", { keyPath: "id" });
+                            }
+                        };
+                        request.onsuccess = (e) => {
+                            this.instance = e.target.result;
+                            resolve();
+                        };
+                        request.onerror = (e) => reject(e);
+                    });
+                },
+                save(entry) {
+                    return new Promise((resolve) => {
+                        const tx = this.instance.transaction("history", "readwrite");
+                        tx.objectStore("history").add(entry);
+                        tx.oncomplete = () => resolve();
+                    });
+                },
+                getAll() {
+                    return new Promise((resolve) => {
+                        const tx = this.instance.transaction("history", "readonly");
+                        const req = tx.objectStore("history").getAll();
+                        req.onsuccess = () => resolve(req.result.reverse());
+                    });
+                },
+                clear() {
+                    return new Promise((resolve) => {
+                        const tx = this.instance.transaction("history", "readwrite");
+                        tx.objectStore("history").clear();
+                        tx.oncomplete = () => resolve();
+                    });
+                }
+            },
+
+            setupSplash() {
+                setTimeout(() => {
+                    const s = document.getElementById('splash');
+                    s.classList.add('hidden');
+                }, 2000);
+            },
+
+            setupCore() {
+                // UI Initializers
+                document.getElementById('version-badge').innerText = `v${this.state.version} • Pro Edition`;
+                
+                // Set initial intensity from storage
+                const slider = document.getElementById('intensity-range');
+                slider.value = this.state.intensity * 100;
+                document.getElementById('intensity-text').innerText = `${slider.value}%`;
+
+                // Slider Input
+                let rafId = null;
+                document.getElementById('intensity-range').oninput = (e) => {
+                    const val = e.target.value;
+                    document.getElementById('intensity-text').innerText = `${val}%`;
+                    this.state.intensity = val / 100;
+                    localStorage.setItem('lab_intensity', this.state.intensity);
+                    
+                    if (rafId) cancelAnimationFrame(rafId);
+                    rafId = requestAnimationFrame(() => this.renderPreview());
+                };
+
+                // LUT Upload
+                document.getElementById('lut-upload').onchange = (e) => {
+                    const f = e.target.files[0];
+                    if(!f) return;
+                    this.log("Parsing LUT: " + f.name);
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        try {
+                            const result = this.engine.parseCube(ev.target.result);
+                            if (result && result.size > 0) {
+                                this.state.lut = result;
+                                document.getElementById('lut-name').innerText = f.name;
+                                localStorage.setItem('last_lut_name', f.name);
+                                this.log(`LUT Success: ${f.name}`);
+                                this.renderPreview();
+                                if(this.state.queue.length > 0) document.getElementById('batch-fab').classList.add('scale-100', 'pulse-batch');
+                            } else {
+                                throw new Error("Invalid LUT Size");
+                            }
+                        } catch (err) {
+                            this.log("ERR: LUT Buggy! " + err.message);
+                            alert("File LUT rusak atau tidak didukung!");
+                        }
+                    };
+                    reader.onerror = () => this.log("ERR: Gagal baca file LUT");
+                    reader.readAsText(f);
+                };
+
+                // Media Upload
+                document.getElementById('image-upload').onchange = (e) => {
+                    try {
+                        const added = Array.from(e.target.files);
+                        if(added.length === 0) return;
+                        
+                        added.forEach(f => {
+                            const obj = {
+                                id: Math.random().toString(36).substring(2, 10),
+                                file: f,
+                                name: f.name,
+                                url: URL.createObjectURL(f)
+                            };
+                            this.state.queue.push(obj);
+                        });
+                        this.log(`Added ${added.length} media items`);
+                        this.refreshGallery();
+                        if(!this.state.activeId && this.state.queue.length > 0) {
+                            this.setActive(this.state.queue[0].id);
+                        }
+                    } catch (err) {
+                        this.log("ERR: Media Bug! " + err.message);
+                    }
+                };
+            },
+
+            // --- ENGINE & RENDERING ---
+            engine: {
+                gl: null,
+                prog: null,
+                tex: null,
+                lutTex: null,
+                vBuf: null,
+                attr: { p: null, uv: null },
+                unif: { inst: null, size: null, tex: null, lut: null },
+
+                initGL(canvas) {
+                    if (this.gl && this.gl.canvas === canvas) return this.gl;
+                    try {
+                        const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true, alpha: false, antialias: false });
+                        if (!gl) {
+                            LAB.log("ERR: WebGL2 Not Supported");
+                            return null;
+                        }
+                        this.gl = gl;
+                        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+                        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+                        const vs = `#version 300 es
+                        in vec2 p; in vec2 uv; out vec2 v_uv;
+                        void main() { gl_Position = vec4(p, 0, 1); v_uv = uv; }`;
+
+                        const fs = `#version 300 es
+                        precision highp float;
+                        precision highp sampler2D;
+                        precision highp sampler3D;
+                        uniform sampler2D tex; uniform sampler3D lut;
+                        uniform float inst; uniform float size;
+                        in vec2 v_uv; out vec4 color;
+                        void main() {
+                            vec4 c = texture(tex, v_uv);
+                            vec3 raw = clamp(c.rgb, 0.0, 1.0);
+                            vec3 luv = raw * ((size - 1.0) / size) + (0.5 / size);
+                            vec3 res = texture(lut, luv).rgb;
+                            color = vec4(mix(raw, res, inst), 1.0);
+                        }`;
+
+                        const sh = (t, s) => {
+                            const x = gl.createShader(t);
+                            gl.shaderSource(x, s); gl.compileShader(x);
+                            if(!gl.getShaderParameter(x, gl.COMPILE_STATUS)) {
+                                LAB.log("Shader ERR: " + gl.getShaderInfoLog(x));
+                                return null;
+                            }
+                            return x;
+                        };
+
+                        const prog = gl.createProgram();
+                        const vsh = sh(gl.VERTEX_SHADER, vs);
+                        const fsh = sh(gl.FRAGMENT_SHADER, fs);
+                        if(!vsh || !fsh) return null;
+
+                        gl.attachShader(prog, vsh);
+                        gl.attachShader(prog, fsh);
+                        gl.linkProgram(prog);
+                        if(!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+                            LAB.log("Prog ERR: " + gl.getProgramInfoLog(prog));
+                            return null;
+                        }
+                        
+                        this.gl = gl;
+                        this.prog = prog;
+                        this.attr.p = gl.getAttribLocation(prog, "p");
+                        this.attr.uv = gl.getAttribLocation(prog, "uv");
+                        this.unif.inst = gl.getUniformLocation(prog, "inst");
+                        this.unif.size = gl.getUniformLocation(prog, "size");
+                        this.unif.tex = gl.getUniformLocation(prog, "tex");
+                        this.unif.lut = gl.getUniformLocation(prog, "lut");
+
+                        this.vBuf = gl.createBuffer();
+                        gl.bindBuffer(gl.ARRAY_BUFFER, this.vBuf);
+                        // Standard Quad [X, Y, U, V] - Correct orientation
+                        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+                            -1, -1, 0, 1,
+                             1, -1, 1, 1,
+                            -1,  1, 0, 0,
+                             1, -1, 1, 1,
+                             1,  1, 1, 0,
+                            -1,  1, 0, 0
+                        ]), gl.STATIC_DRAW);
+
+                        this.tex = gl.createTexture();
+                        this.lutTex = gl.createTexture();
+                        LAB.log("Engine: WebGL2 Core Secure");
+                        return gl;
+                    } catch (e) {
+                        LAB.log("Engine: Critical Failure " + e.message);
+                        return null;
+                    }
+                },
+
+                parseCube(txt) {
+                    try {
+                        const lines = txt.split('\n');
+                        let size = 0, data = [];
+                        for(let line of lines) {
+                            line = line.trim().replace('\r','');
+                            if (!line || line.startsWith('#') || line.startsWith('TITLE')) continue;
+                            if (line.startsWith('LUT_3D_SIZE')) size = parseInt(line.split(/\s+/)[1]);
+                            else if (line.match(/^[-+]?[0-9]*\.?[0-9]+\s+[-+]?[0-9]*\.?[0-9]+\s+[-+]?[0-9]*\.?[0-9]+/)) {
+                                const p = line.split(/\s+/).filter(x => x.length > 0).map(Number);
+                                if(p.length >= 3) data.push(
+                                    Math.max(0, Math.min(255, Math.round(p[0] * 255))), 
+                                    Math.max(0, Math.min(255, Math.round(p[1] * 255))), 
+                                    Math.max(0, Math.min(255, Math.round(p[2] * 255))), 
+                                    255
+                                );
+                            }
+                        }
+                        if(size === 0 || data.length < (size * size * size * 4)) {
+                            LAB.log(`Parser: Incomplete (${data.length}/${size**3 * 4})`);
+                            return null;
+                        }
+                        LAB.log(`Parser: Success (Size ${size})`);
+                        return { size, data: new Uint8Array(data) };
+                    } catch (e) {
+                        LAB.log("Parser ERR: " + e.message);
+                        return null;
+                    }
+                },
+
+                process(img, lut, intensity, canvas, isPreview = false) {
+                    if(!img.complete || img.naturalWidth === 0) return;
+                    const gl = this.initGL(canvas);
+                    if(!gl) return;
+                    
+                    let w = img.naturalWidth, h = img.naturalHeight;
+                    
+                    // Apply Resolution Settings
+                    const limit = isPreview ? 1280 : (LAB.state.resolution || 99999);
+                    if (w > limit || h > limit) {
+                        const r = Math.min(limit / w, limit / h);
+                        w = Math.round(w * r); h = Math.round(h * r);
+                    }
+
+                    if(canvas.width !== w || canvas.height !== h) {
+                        canvas.width = w; canvas.height = h;
+                    }
+
+                    gl.viewport(0, 0, w, h);
+                    gl.clearColor(0, 0, 0, 1);
+                    gl.clear(gl.COLOR_BUFFER_BIT);
+                    gl.useProgram(this.prog);
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.vBuf);
+                    gl.enableVertexAttribArray(this.attr.p);
+                    gl.vertexAttribPointer(this.attr.p, 2, gl.FLOAT, false, 16, 0);
+                    gl.enableVertexAttribArray(this.attr.uv);
+                    gl.vertexAttribPointer(this.attr.uv, 2, gl.FLOAT, false, 16, 8);
+
+                    gl.activeTexture(gl.TEXTURE0);
+                    gl.bindTexture(gl.TEXTURE_2D, this.tex);
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+                    gl.activeTexture(gl.TEXTURE1);
+                    gl.bindTexture(gl.TEXTURE_3D, this.lutTex);
+                    
+                    // High compatibility 8-bit RGBA texture for LUT
+                    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA, lut.size, lut.size, lut.size, 0, gl.RGBA, gl.UNSIGNED_BYTE, lut.data);
+                    
+                    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+
+                    gl.uniform1i(this.unif.tex, 0);
+                    gl.uniform1i(this.unif.lut, 1);
+                    gl.uniform1f(this.unif.inst, intensity);
+                    gl.uniform1f(this.unif.size, lut.size);
+
+                    gl.drawArrays(gl.TRIANGLES, 0, 6);
+                }
+            },
+
+            renderPreview() {
+                const img = document.getElementById('source-img');
+                const canvas = document.getElementById('main-canvas');
+                if(!img.src || !this.state.lut) return;
+                
+                try {
+                    this.engine.process(img, this.state.lut, this.state.intensity, canvas, true);
+                    document.getElementById('preview-labels').style.opacity = '1';
+                    document.getElementById('empty-state').classList.add('hidden');
+                    canvas.classList.remove('hidden');
+                } catch(e) {
+                    this.log("Render ERR: " + e.message);
+                }
+            },
+
+            setActive(id) {
+                this.state.activeId = id;
+                const item = this.state.queue.find(x => x.id === id);
+                if(!item) return;
+                
+                const img = document.getElementById('source-img');
+                img.src = item.url;
+                img.onload = () => this.renderPreview();
+                this.refreshGallery();
+            },
+
+            refreshGallery() {
+                const strip = document.getElementById('film-strip');
+                const cont = document.getElementById('gallery-container');
+                const fab = document.getElementById('batch-fab');
+
+                if(this.state.queue.length === 0) {
+                    strip.innerHTML = `<div class="w-full text-center py-6 text-[10px] font-bold text-slate-300 italic">No media in queue...</div>`;
+                    cont.classList.add('opacity-40', 'grayscale', 'pointer-events-none');
+                    fab.classList.remove('scale-100', 'pulse-batch');
+                    return;
+                }
+
+                cont.classList.remove('opacity-40', 'grayscale', 'pointer-events-none');
+                document.getElementById('media-count').innerText = `${this.state.queue.length} Items Active`;
+                if(this.state.lut) fab.classList.add('scale-100', 'pulse-batch');
+
+                strip.innerHTML = this.state.queue.map(item => `
+                    <div onclick="LAB.setActive('${item.id}')" class="image-card shrink-0 w-16 h-16 rounded-xl border-2 overflow-hidden ${this.state.activeId === item.id ? 'active' : 'border-slate-100'}">
+                        <img src="${item.url}" class="w-full h-full object-cover">
+                    </div>
+                `).join('');
+            },
+
+            // --- BATCH ENGINE ---
+            async startBatchProcess() {
+                if(!this.state.lut) return alert("Pilih LUT Terlebih Dahulu!");
+                const overlay = document.getElementById('batch-overlay');
+                const ring = document.getElementById('batch-ring');
+                const percent = document.getElementById('batch-percent');
+                const counter = document.getElementById('batch-counter');
+                const status = document.getElementById('batch-status');
+                const filename = document.getElementById('batch-filename');
+
+                overlay.classList.remove('hidden');
+                counter.innerText = `0 / ${this.state.queue.length}`;
+
+                const batchResults = [];
+                const mainCanvas = document.getElementById('main-canvas');
+
+                for(let i=0; i < this.state.queue.length; i++) {
+                    const item = this.state.queue[i];
+                    filename.innerText = `Processing: ${item.name}`;
+                    
+                    const img = await new Promise(res => {
+                        const x = new Image(); x.src = item.url; x.onload = () => res(x);
+                    });
+
+                    this.engine.process(img, this.state.lut, this.state.intensity, mainCanvas, false);
+                    if (this.engine.gl) this.engine.gl.finish();
+
+                    const blob = await new Promise(res => {
+                        mainCanvas.toBlob(blob => res(blob), 'image/jpeg', 0.92);
+                    });
+
+                    const resUrl = URL.createObjectURL(blob);
+                    batchResults.push({ name: item.name, data: blob, url: resUrl });
+
+                    // Update UI
+                    const p = Math.round(((i+1)/this.state.queue.length)*100);
+                    percent.innerText = `${p}%`;
+                    counter.innerText = `${i+1} / ${this.state.queue.length}`;
+                    ring.style.strokeDashoffset = 283 - (283 * p / 100);
+                }
+
+                // Add to history (Persistent via IndexedDB - Efficient BLOBs)
+                const entry = {
+                    id: Math.random().toString(36).substring(2, 8).toUpperCase(),
+                    items: batchResults.map(r => ({ name: r.name, data: r.data })),
+                    date: new Date().toLocaleString(),
+                    lut: document.getElementById('lut-name').innerText
+                };
+
+                await this.db.save(entry);
+                await this.loadHistory();
+                
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    this.toggleHistory();
+                }, 800);
+            },
+
+            async loadHistory() {
+                try {
+                    this.state.history = await this.db.getAll();
+                    this.renderHistory();
+                } catch(e) { this.log("History Load Err: " + e.message); }
+            },
+
+            renderHistory() {
+                const list = document.getElementById('export-list');
+                if(this.state.history.length === 0) {
+                    list.innerHTML = `<div class="col-span-2 text-center py-20 text-slate-300 font-bold text-[11px] uppercase italic">History is empty</div>`;
+                    return;
+                }
+
+                // Revoke old URLs to prevent leaks
+                if(window._historyUrls) window._historyUrls.forEach(u => URL.revokeObjectURL(u));
+                window._historyUrls = [];
+
+                list.innerHTML = [...this.state.history].reverse().map(job => {
+                    const thumbHtml = job.items.map(img => {
+                        const blobUrl = URL.createObjectURL(img.data);
+                        window._historyUrls.push(blobUrl);
+                        const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
+                        
+                        if(isNative) {
+                            return `
+                                <div onclick="LAB.saveToNative('${img.name}', '${img.data}')" class="shrink-0 w-14 h-14 rounded-xl border border-white shadow-sm overflow-hidden active:scale-90 transition-transform cursor-pointer">
+                                    <img src="${blobUrl}" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100">
+                                        <i class="ph-bold ph-download-simple text-white"></i>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        return `
+                            <a href="${blobUrl}" download="Edited_${img.name}" class="shrink-0 w-14 h-14 rounded-xl border border-white shadow-sm overflow-hidden active:scale-90 transition-transform">
+                                <img src="${blobUrl}" class="w-full h-full object-cover">
+                            </a>
+                        `;
+                    }).join('');
+
+                    return `
+                    <div class="col-span-2 bg-slate-50 border border-black/5 rounded-3xl p-5 space-y-4">
+                        <div class="flex justify-between items-center">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">BATCH #${job.id}</span>
+                                <span class="text-[9px] font-bold text-indigo-600">${job.lut}</span>
+                            </div>
+                            <span class="text-[8px] font-bold text-slate-300 uppercase">${job.date}</span>
+                        </div>
+                        <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                            ${thumbHtml}
+                        </div>
+                    </div>
+                `;
+                }).join('');
+            },
+
+            // --- OTA & SETTINGS ---
+            async setupOTA() {
+                try {
+                    // CRITICAL: Notify plugin that update was successful to prevent rollback
+                    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                        const { CapacitorUpdater } = window.Capacitor.Plugins;
+                        if (CapacitorUpdater) {
+                            await CapacitorUpdater.complete();
+                            this.log("OTA System: Version Locked & Secure.");
+                        }
+                    }
+                    setTimeout(() => this.checkUpdate(), 3000);
+                } catch (e) { this.log("OTA Skip: Offline mode"); }
+            },
+
+            async checkUpdate(manual = false) {
+                if (!navigator.onLine) {
+                    if(manual) alert("Periksa koneksi internet!");
+                    return;
+                }
+                this.log("Syncing with GitHub Registry...");
+                try {
+                    const res = await fetch("https://raw.githubusercontent.com/dhanproject/LUT-Studio-FIX/main/ota_version.json?t=" + Date.now());
+                    if (!res.ok) throw new Error("Server issues");
+                    const data = await res.json();
+                    this.log(`Registry: v${data.version} | System: v${this.state.version}`);
+
+                    if(data.version !== this.state.version) {
+                        const alertBox = document.getElementById('ota-alert');
+                        alertBox.classList.remove('hidden');
+                        alertBox.classList.add('flex');
+                        document.getElementById('ota-version-label').innerText = `v${data.version} is available`;
+                        window.otaDist = data;
+                        this.log("!!! PEMBARUAN DITEMUKAN");
+                    } else if(manual) alert("System is up-to-date");
+
+                } catch (e) { this.log("OTA Skip: Registry unreachable"); }
+            },
+
+            async installUpdate() {
+                const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
+                if (!isNative) {
+                    return alert("Fitur ini hanya untuk HP (APK)!");
+                }
+                
+                const btn = document.getElementById('ota-btn');
+                btn.innerText = "WAIT..."; btn.disabled = true;
+                this.log("Downloading laboratory package...");
+                
+                try {
+                    const { CapacitorUpdater } = window.Capacitor.Plugins;
+                    if(!CapacitorUpdater) throw new Error("Plugin Updater tidak ditemukan!");
+                    
+                    const bnd = await CapacitorUpdater.download({ 
+                        url: window.otaDist.url, 
+                        version: window.otaDist.version 
+                    });
+                    
+                    this.log("Package verified. Restarting laboratory...");
+                    await CapacitorUpdater.set(bnd);
+                    localStorage.setItem('app_version', window.otaDist.version);
+                    window.location.reload();
+                } catch (e) { 
+                    this.log("ERR: Update failed: " + e.message); 
+                    btn.innerText = "RETRY"; btn.disabled = false;
+                    alert("Gagal update paket: " + e.message);
+                }
+            },
+
+            log(m) {
+                const c = document.getElementById('ota-log-console');
+                if(!c) return;
+                const time = new Date().toLocaleTimeString();
+                c.innerHTML += `<div><span class="text-slate-500">[${time}]</span> ${m}</div>`;
+                c.scrollTop = c.scrollHeight;
+            },
+
+            clearOTA() { localStorage.removeItem('app_version'); localStorage.removeItem('lab_intensity'); this.db.clear().then(() => window.location.reload()); },
+            clearQueue() { 
+                this.state.queue = []; 
+                this.state.activeId = null; 
+                this.refreshGallery(); 
+                document.getElementById('empty-state').classList.remove('hidden'); 
+                document.getElementById('main-canvas').classList.add('hidden'); 
+                document.getElementById('source-img').src = ''; 
+                document.getElementById('preview-labels').style.opacity = '0'; 
+                this.log("Queue Cleared."); 
+            },
+
+            toggleSettings() { 
+                const el = document.getElementById('settings-overlay');
+                const inner = el.querySelector('div');
+                if(el.classList.contains('hidden')) {
+                    el.classList.remove('hidden');
+                    el.classList.add('flex');
+                    setTimeout(() => inner.classList.remove('translate-y-full'), 10);
+                } else {
+                    inner.classList.add('translate-y-full');
+                    setTimeout(() => { el.classList.add('hidden'); el.classList.remove('flex'); }, 500);
+                }
+            },
+
+            toggleHistory() {
+                const el = document.getElementById('history-drawer');
+                const inner = el.querySelector('div');
+                if(el.classList.contains('hidden')) {
+                    el.classList.remove('hidden');
+                    el.classList.add('flex');
+                    setTimeout(() => inner.classList.remove('translate-y-full'), 10);
+                } else {
+                    inner.classList.add('translate-y-full');
+                    setTimeout(() => { el.classList.add('hidden'); el.classList.remove('flex'); }, 500);
+                }
+            },
+
+            setIntensity(v) {
+                const slider = document.getElementById('intensity-range');
+                slider.value = v;
+                slider.dispatchEvent(new Event('input'));
+            },
+
+            setResolution(res) {
+                this.state.resolution = res;
+                localStorage.setItem('lab_resolution', res);
+                this.updateResolutionUI();
+                this.log(`Resolution: ${res === 0 ? 'Full' : res + 'p'}`);
+                if(this.state.activeId) this.renderPreview();
+            },
+
+            updateResolutionUI() {
+                const res = this.state.resolution;
+                ['720', '1080', 'full'].forEach(id => {
+                    const btn = document.getElementById(`res-${id}`);
+                    if(!btn) return;
+                    const isMatch = (id === 'full' && res === 0) || (id === res.toString());
+                    if(isMatch) {
+                        btn.className = "flex-1 p-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase transition-all shadow-lg";
+                    } else {
+                        btn.className = "flex-1 p-3 bg-slate-100 text-slate-400 rounded-xl text-[10px] font-black uppercase transition-all";
+                    }
+                });
+            },
+
+            async requestNativePermissions() {
+                if (!(window.Capacitor && window.Capacitor.isNativePlatform())) return;
+                try {
+                    const { Filesystem } = window.Capacitor.Plugins;
+                    const status = await Filesystem.checkPermissions();
+                    if (status.publicStorage !== 'granted') {
+                        await Filesystem.requestPermissions();
+                    }
+                } catch(e) { console.error("Permission Err:", e); }
+            },
+
+            async saveToNative(name, base64) {
+                if (!(window.Capacitor && window.Capacitor.isNativePlatform())) return;
+                try {
+                    const { Filesystem } = window.Capacitor.Plugins;
+                    const cleanBase64 = base64.split(',').pop();
+                    const fileName = `Edited_${Date.now()}_${name}`;
+
+                    await Filesystem.writeFile({
+                        path: fileName,
+                        data: cleanBase64,
+                        directory: 'DOWNLOADS'
+                    });
+
+                    alert(`Berhasil! File disimpan di folder Downloads sebagai: ${fileName}`);
+                    this.log("File saved to Downloads.");
+                } catch(e) {
+                    alert("Gagal menyimpan: " + e.message);
+                    this.log("Save ERR: " + e.message);
+                }
+            }
+        };
+
+        // Boot
+        window.onload = () => LAB.init();
+
+    </script>
+</body>
+</html>

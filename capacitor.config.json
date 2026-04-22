@@ -1,0 +1,21 @@
+{
+  "appId": "com.lutprocessor.app",
+  "appName": "LUT Processor App",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true
+    },
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "stats": true
+    }
+  }
+}
